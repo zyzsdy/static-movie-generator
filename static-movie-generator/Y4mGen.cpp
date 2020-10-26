@@ -5,18 +5,49 @@
 Y4mGen::Y4mGen(cv::Mat& image, int duration)
 {
 	this->frameSize = std::ceil((30.0 / 1001.0) * duration);
-	
+
 	auto imageSize = image.size();
 	this->width = imageSize.width;
 	this->height = imageSize.height;
 
-	this->bufferLength = this->width * this->height * 3 / 2 * sizeof(unsigned char);
+	this->bufferLength = this->height * this->width * 3;
 	this->yuv420_frame_buffer = new unsigned char[this->bufferLength];
 
-	cv::Mat yuv420Mat(this->height + this->height / 2, this->width, CV_8UC1, this->yuv420_frame_buffer);
-	cv::cvtColor(image, yuv420Mat, cv::COLOR_RGB2YUV_YV12);
+	unsigned char* yuv420p = new unsigned char[this->bufferLength];
+	unsigned char* rgb = new unsigned char[this->bufferLength];
+	memcpy_s(rgb, this->bufferLength, image.data, this->bufferLength);
+	if (yuv420p == NULL || rgb == NULL)
+		return;
+	int frameSize = width * height;
+	int chromaSize = frameSize / 4;
 
-	memcpy_s(this->yuv420_frame_buffer, this->bufferLength, yuv420Mat.data, this->bufferLength);
+	int yIndex = 0;
+	int uIndex = frameSize;
+	int vIndex = frameSize + chromaSize;
+
+	int R, G, B, Y, U, V;
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			B = rgb[(i * width + j) * 3 + 0];
+			G = rgb[(i * width + j) * 3 + 1];
+			R = rgb[(i * width + j) * 3 + 2];
+
+			//RGB to YUV
+			Y = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
+			U = ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
+			V = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
+
+			yuv420p[yIndex++] = (unsigned char)((Y < 0) ? 0 : ((Y > 255) ? 255 : Y));
+			if (i % 2 == 0 && j % 2 == 0)
+			{
+				yuv420p[uIndex++] = (unsigned char)((U < 0) ? 0 : ((U > 255) ? 255 : U));
+				yuv420p[vIndex++] = (unsigned char)((V < 0) ? 0 : ((V > 255) ? 255 : V));
+			}
+		}
+	}
+	yuv420_frame_buffer = yuv420p;
 
 	std::cerr << "Total frames: " << this->frameSize << std::endl;
 }
