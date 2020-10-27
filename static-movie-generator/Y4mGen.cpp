@@ -47,7 +47,7 @@ Y4mGen::Y4mGen(cv::Mat& image, int duration)
 			}
 		}
 	}
-	yuv420_frame_buffer = yuv420p;
+	memcpy_s(yuv420_frame_buffer, this->bufferLength, yuv420p, this->bufferLength);
 
 	std::cerr << "Total frames: " << this->frameSize << std::endl;
 }
@@ -80,7 +80,7 @@ void Y4mGen::genMovie(std::string output)
 	outputStream->flush();
 	for (int i = 0; i < this->frameSize; i++) {
 		outputStream->write("FRAME\n", 6);
-		outputStream->write((const char *)this->yuv420_frame_buffer, this->bufferLength);
+		outputStream->write((const char*)this->yuv420_frame_buffer, this->width * this->height * 3 / 2 * sizeof(unsigned char));
 		outputStream->flush();
 	}
 }
