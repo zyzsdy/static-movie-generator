@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 	argParser.add("cover", 'c', "Cover mode");
 	argParser.add<int>("width", 'w', "Width of output (Only valid in Cover mode.)", false, 1280);
 	argParser.add<int>("height", 'h', "Height of output (Only valid in Cover mode.)", false, 720);
-	argParser.set_program_name("static-movie-generator");
+	argParser.set_program_name("static-movie-generator v1.0.1");
 
 	argParser.parse_check(argc, argv);
 
