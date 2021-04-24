@@ -3,6 +3,7 @@
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
+
 class CoverGen
 {
 	std::string input;
@@ -10,6 +11,5 @@ class CoverGen
 	int height;
 public:
 	CoverGen(std::string, int, int);
-	Mat getStaticFrame();
+	Mat getStaticFrame() const;
 };
-
