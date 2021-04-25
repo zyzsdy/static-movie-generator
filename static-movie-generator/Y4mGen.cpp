@@ -1,10 +1,18 @@
 #include "Y4mGen.h"
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 Y4mGen::Y4mGen(cv::Mat& image, const int duration, const double framerate)
 {
-	this->frameSize = std::ceil(framerate / 1000 * duration);
+	auto framerate_int = static_cast<int>(framerate);
+	if (framerate - framerate_int == 0)
+		this->frameSize = std::ceil(framerate / 1000 * duration);
+	else
+	{
+		framerate_int = static_cast<int>(lround(framerate * 1001));
+		this->frameSize = std::ceil(framerate_int / 1001000.0 * duration);
+	}
 
 	const auto imageSize = image.size();
 	this->width = imageSize.width;
@@ -76,9 +84,16 @@ void Y4mGen::genMovie(const std::string output) const
 
 	std::stringstream y4mHeaderStream;
 	std::string y4mHeader;
-	const auto framerate_int = static_cast<int>(std::ceil(this->framerate * 1000));
-	y4mHeaderStream << "YUV4MPEG2 W" << this->width << " H" << this->height << " F" + std::to_string(framerate_int) +
-		":1000 Ip A1:1 C420\n";
+	auto framerate_int = static_cast<int>(this->framerate);
+	if (framerate - framerate_int == 0)
+		y4mHeaderStream << "YUV4MPEG2 W" << this->width << " H" << this->height << " F" + std::to_string(framerate_int)
+			+ ":1 Ip A1:1 C420\n";
+	else
+	{
+		framerate_int = static_cast<int>(lround(framerate * 1001));
+		y4mHeaderStream << "YUV4MPEG2 W" << this->width << " H" << this->height << " F" + std::to_string(framerate_int)
+			+ ":1001 Ip A1:1 C420\n";
+	}
 	y4mHeader = y4mHeaderStream.str();
 
 	outputStream->write(y4mHeader.c_str(), y4mHeader.length());
