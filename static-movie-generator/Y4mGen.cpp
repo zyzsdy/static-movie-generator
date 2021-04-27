@@ -5,42 +5,46 @@
 
 Y4mGen::Y4mGen(cv::Mat& image, const int duration, const double framerate)
 {
-	auto framerate_int = static_cast<int>(framerate);
-	if (framerate - framerate_int == 0)
-		this->frameSize = std::ceil(framerate / 1000 * duration);
+	auto framerateInt = static_cast<int>(lround(framerate * 1001));
+	if (framerateInt % 1000 == 0)
+	{
+		this->framerateD = 1001;
+		this->framerateN = framerateInt;
+	}
 	else
 	{
-		framerate_int = static_cast<int>(lround(framerate * 1001));
-		this->frameSize = std::ceil(framerate_int / 1001000.0 * duration);
+		this->framerateD = 1000;
+		this->framerateN = static_cast<int>(framerate * 1000);
 	}
+
+	this->frameSize = std::ceil(framerate / 1000 * duration);
 
 	const auto imageSize = image.size();
 	this->width = imageSize.width;
 	this->height = imageSize.height;
-	this->framerate = framerate;
-	this->bufferLength = this->height * this->width * 3 * sizeof(unsigned char);
-	this->YUV_bufferLength = this->bufferLength / 2;
-	this->yuv420_frame_buffer = new unsigned char[this->YUV_bufferLength];
+	this->bufferLength = static_cast<unsigned long long>(this->height) * this->width * 3 * sizeof(unsigned char);
+	this->yuvBufferLength = this->bufferLength / 2;
+	this->yuv420FrameBuffer = new unsigned char[this->yuvBufferLength];
 
-	auto* yuv420p = new unsigned char[this->YUV_bufferLength];
+	auto* yuv420p = new unsigned char[this->yuvBufferLength];
 	auto* rgb = new unsigned char[this->bufferLength];
 	memcpy_s(rgb, this->bufferLength, image.data, this->bufferLength);
 	if (yuv420p == nullptr || rgb == nullptr)
 		return;
-	const auto frameSize = width * height;
+	const auto frameSize = static_cast<unsigned long long>(this->width) * this->height;
 	const auto chromaSize = frameSize / 4;
 
 	auto yIndex = 0;
 	auto uIndex = frameSize;
 	auto vIndex = frameSize + chromaSize;
 
-	for (auto i = 0; i < height; i++)
+	for (auto i = 0; i < this->height; i++)
 	{
-		for (auto j = 0; j < width; j++)
+		for (auto j = 0; j < this->width; j++)
 		{
-			const int B = rgb[(i * width + j) * 3 + 0];
-			const int G = rgb[(i * width + j) * 3 + 1];
-			const int R = rgb[(i * width + j) * 3 + 2];
+			const int B = rgb[(i * this->width + j) * 3 + 0];
+			const int G = rgb[(i * this->width + j) * 3 + 1];
+			const int R = rgb[(i * this->width + j) * 3 + 2];
 
 			//RGB to YUV
 			const auto Y = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
@@ -55,14 +59,16 @@ Y4mGen::Y4mGen(cv::Mat& image, const int duration, const double framerate)
 			}
 		}
 	}
-	memcpy_s(yuv420_frame_buffer, this->YUV_bufferLength, yuv420p, this->YUV_bufferLength);
+	memcpy_s(yuv420FrameBuffer, this->yuvBufferLength, yuv420p, this->yuvBufferLength);
 
+	delete[] yuv420p;
+	delete[] rgb;
 	std::cerr << "Total frames: " << this->frameSize << std::endl;
 }
 
 Y4mGen::~Y4mGen()
 {
-	delete[] this->yuv420_frame_buffer;
+	delete[] this->yuv420FrameBuffer;
 }
 
 void Y4mGen::genMovie(const std::string output) const
@@ -84,16 +90,9 @@ void Y4mGen::genMovie(const std::string output) const
 
 	std::stringstream y4mHeaderStream;
 	std::string y4mHeader;
-	auto framerate_int = static_cast<int>(this->framerate);
-	if (framerate - framerate_int == 0)
-		y4mHeaderStream << "YUV4MPEG2 W" << this->width << " H" << this->height << " F" + std::to_string(framerate_int)
-			+ ":1 Ip A1:1 C420\n";
-	else
-	{
-		framerate_int = static_cast<int>(lround(framerate * 1001));
-		y4mHeaderStream << "YUV4MPEG2 W" << this->width << " H" << this->height << " F" + std::to_string(framerate_int)
-			+ ":1001 Ip A1:1 C420\n";
-	}
+
+	y4mHeaderStream << "YUV4MPEG2 W" << this->width << " H" << this->height 
+					<< " F" << this->framerateN << ":" << this->framerateD << " Ip A1:1 C420\n";
 	y4mHeader = y4mHeaderStream.str();
 
 	outputStream->write(y4mHeader.c_str(), y4mHeader.length());
@@ -101,8 +100,8 @@ void Y4mGen::genMovie(const std::string output) const
 	for (auto i = 0; i < this->frameSize; i++)
 	{
 		outputStream->write("FRAME\n", 6);
-		outputStream->write(reinterpret_cast<const char*>(this->yuv420_frame_buffer),
-		                    this->width * this->height * 3 / 2 * sizeof(unsigned char));
+		outputStream->write(reinterpret_cast<const char*>(this->yuv420FrameBuffer),
+		                    static_cast<unsigned long long>(this->width) * this->height * 3 / 2 * sizeof(unsigned char));
 		outputStream->flush();
 	}
 }

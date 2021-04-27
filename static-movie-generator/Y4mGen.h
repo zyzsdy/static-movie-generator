@@ -3,13 +3,14 @@
 
 class Y4mGen
 {
-	unsigned char* yuv420_frame_buffer;
-	int bufferLength;
-	int YUV_bufferLength;
-	int frameSize;
+	unsigned char* yuv420FrameBuffer;
+	unsigned long long bufferLength;
+	unsigned long long yuvBufferLength;
+	unsigned long long frameSize;
 	int width;
 	int height;
-	double framerate;
+	int framerateN;
+	int framerateD;
 public:
 	Y4mGen(cv::Mat& image, int duration, double framerate);
 	~Y4mGen();

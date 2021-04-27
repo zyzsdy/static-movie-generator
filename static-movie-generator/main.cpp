@@ -43,11 +43,11 @@ int main(const int argc, char* argv[])
 	                      "The location of output. default: standard output. Hint: The output will be very large. Try not to save it and use pipeline to dispose of it.",
 	                      false, "-");
 	argParser.add<int>("duration", 'd', "The duration of the movie, in milliseconds.", true);
-	argParser.add<double>("framerate", 'f', "Frame rate of the video", false, 30.0);
+	argParser.add<double>("framerate", 'f', "Frame rate of the video. eg. 24, 23.976, 30, 29.97, 60, 59.94", false, 30.0);
 	argParser.add("cover", 'c', "Cover mode");
 	argParser.add<int>("width", 'w', "Width of output (Only valid in Cover mode.)", false, 1280);
 	argParser.add<int>("height", 'h', "Height of output (Only valid in Cover mode.)", false, 720);
-	argParser.set_program_name("static-movie-generator v1.0.1");
+	argParser.set_program_name("static-movie-generator v1.0.2");
 
 	argParser.parse_check(argc, argv);
 
